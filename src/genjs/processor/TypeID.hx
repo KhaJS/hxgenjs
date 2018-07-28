@@ -10,6 +10,12 @@ abstract TypeID(String) from String to String {
 	public inline function asTemplateHolder() return this.replace('_', '__').replace('.', '_');
 	
 	public inline function asVarSafeName() return this.replace('_', '_$$').replace('.', '_');
+
+   public inline function asVarSingleName() {
+     var splitName = this.split('.');
+     var singleName = splitName[splitName.length - 1];
+     return singleName;
+   }
 	
 	public inline function asAccessName(?externType:ExternType)
 		return switch externType {

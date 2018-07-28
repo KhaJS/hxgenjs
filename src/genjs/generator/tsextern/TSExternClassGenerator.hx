@@ -16,6 +16,7 @@ using genjs.template.CodeTools;
 
 class TSExternClassGenerator implements IClassGenerator {
 	public function new() {}
+  
 	public function generate(api:JSGenApi, c:ProcessedClass) {
 
 		function superClassName(c:ClassType) 
@@ -63,6 +64,13 @@ class TSExternClassGenerator implements IClassGenerator {
 		// Reflect.setField(data, 'Class', '$$hxClasses["Class"]');
 		// Reflect.setField(data, 'Enum', '$$hxClasses["Enum"]');
 		// Reflect.setField(data, 'Void', '$$hxClasses["Void"]');
+
+    var asVarSingleName = function(type: String) {
+      var splitName:Array<String> = type.split('.');
+      var singleName = splitName[splitName.length - 1];
+      return singleName;
+    }
+
 		
 		var packageName = c.id.split (".").slice (0, -1).join (".");
 		var packageDecl = packageName != "" ? "declare namespace " + packageName + " {" : "";
@@ -89,7 +97,7 @@ class TSExternClassGenerator implements IClassGenerator {
 			}
 		}
 		
-		var classStart = "export class " + className + (superClassName != null ? " extends " + superClassName : "") + " {";
+		var classStart = "export class " + asVarSingleName(className) + (superClassName != null ? " extends " + asVarSingleName(superClassName) : "") + " {";
 		// var classStart = "extern class " + c.id.split (".").pop () + " extends Dynamic {";
 		
 		// var body = "function new ();";
@@ -125,12 +133,51 @@ class TSExternClassGenerator implements IClassGenerator {
 		// 	}
 		// 	return params;
 		// }
-		
+
+		var convertInstance = function() {
+      
+    }
+    
+		var convertRetType = function(t) {
+      var type = t.toString();
+      switch(type) {
+        case "Int":
+          return "number";
+        case "Float":
+          return "number";
+        case "Bool":
+          return "boolean";
+        case "String":
+          return "string";
+        case "Array":
+          return "Array<any>";
+        case "Void":
+          return "void";
+        default:
+          return asVarSingleName(type);
+      }
+    }
+
+    var convertMacroType = function(type: haxe.macro.Type) {
+      switch(type) {
+        case TAbstract(t, _):
+          return convertRetType(t.toString());
+        case TInst(t, _):
+          return convertRetType(t.toString());
+        case TType(t, _):
+          return convertRetType(t.toString());
+        case TEnum(t, _):
+          return convertRetType(t.toString());
+        default:
+          return convertRetType("any");
+      }
+    }
+
 		var processField = function (field:haxe.macro.ClassField, isStatic:Bool) {
 			var fieldCode = "";
 			if (field != null && field.type != null) {
 				switch (field.type) {
-					case TFun(args, _):
+					case TFun(args, t):
 						var params = "";
 						var i = 0;
 						for (arg in args) {
@@ -139,11 +186,13 @@ class TSExternClassGenerator implements IClassGenerator {
 							params += name + (arg.opt ? "?" : "") + ":" + "any"/*arg.t.toString ()*/;
 						}
 						// fieldCode = ((c.type.superClass != null && hasField(field.name, c.type.superClass.t)) ? "override " : "") + (isStatic? "static " : "") + (field.name == "new" ? "constructor" : field.name) + "(" + params + ")" + (field.name != "new" ? ":any" : "") + ";";
-						fieldCode = (isStatic? "static " : "") + (field.name == "new" ? "constructor" : field.name) + "(" + params + ")" + (field.name != "new" ? ":any" : "") + ";";
+						fieldCode = (isStatic? "static " : "") + (field.name == "new" ? "constructor" : field.name) + "(" + params + ")" + (field.name != "new" ? ':${convertMacroType(t)}' : "") + ";";
+            // Check type parameters later.
+            convertMacroType(t);
 					case TInst(t, _):
-						fieldCode = (isStatic? "static " : "") + field.name + ":any;";
+						fieldCode = (isStatic? "static " : "") + field.name + ':${convertRetType(t)};';
 					case TAbstract(t, _):
-						fieldCode = (isStatic? "static " : "") + field.name + ":any;";
+						fieldCode = (isStatic? "static " : "") + field.name + ':${convertRetType(t)};';
 					default:
 				}
 			}

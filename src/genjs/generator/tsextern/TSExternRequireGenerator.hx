@@ -25,7 +25,7 @@ class TSExternRequireGenerator implements IRequireGenerator {
 					switch TypeProcessor.flatten(type) {
 						case Some(FClass(id, cls)):
 							var cls = ClassProcessor.process(api, id, cls);
-							var varname = id.asVarSafeName();
+							var varname = id.asVarSingleName();
 							switch cls.externType {
 								case None:
 									var path = api.quoteString(prefix + id.asFilePath());
@@ -43,11 +43,11 @@ class TSExternRequireGenerator implements IRequireGenerator {
 								case Native(_) | CoreApi | Global: 
 									// do nothing
 							}
-							varname = id.asVarSafeName();
+							varname = id.asVarSingleName();
 							
 						case Some(FEnum(id, enm)):
 							var path = api.quoteString(prefix + id.asFilePath());
-							var varname = id.asVarSafeName();
+							var varname = id.asVarSingleName();
 							code.push('import $varname from $path;');
 							
 						default:
