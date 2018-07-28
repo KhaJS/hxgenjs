@@ -68,7 +68,14 @@ class TSExternClassGenerator implements IClassGenerator {
     var asVarSingleName = function(type: String) {
       var splitName:Array<String> = type.split('.');
       var singleName = splitName[splitName.length - 1];
-      return singleName;
+      return switch(singleName) {
+        case "Color":
+          return "Color_Impl_";
+        case "System":
+          return "System_Impl_";
+        default: 
+          return singleName;
+      }
     }
 
 		
