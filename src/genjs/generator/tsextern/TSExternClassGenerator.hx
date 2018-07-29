@@ -64,8 +64,15 @@ class TSExternClassGenerator implements IClassGenerator {
 		// Reflect.setField(data, 'Class', '$$hxClasses["Class"]');
 		// Reflect.setField(data, 'Enum', '$$hxClasses["Enum"]');
 		// Reflect.setField(data, 'Void', '$$hxClasses["Void"]');
+		var packageName = c.id.split (".").slice (0, -1).join (".");
+		var packageDecl = packageName != "" ? "declare namespace " + packageName + " {" : "";
+		
+		var imports = new TSExternRequireGenerator().generate(api, filepath.directory(), c.dependencies);
 
-    var asVarSingleName = function(type: String) {
+    // Add global module import.
+    imports = imports + "\nimport * as khaModule from 'kha';";
+
+    var asSingleName = function(type: String) {
       var splitName:Array<String> = type.split('.');
       var singleName = splitName[splitName.length - 1];
       return switch(singleName) {
@@ -78,11 +85,22 @@ class TSExternClassGenerator implements IClassGenerator {
       }
     }
 
-		
-		var packageName = c.id.split (".").slice (0, -1).join (".");
-		var packageDecl = packageName != "" ? "declare namespace " + packageName + " {" : "";
-		
-		var imports = new TSExternRequireGenerator().generate(api, filepath.directory(), c.dependencies);
+    var asMultiName = function(type: String) {
+      var singleName = asSingleName(type);
+      var r = new EReg(singleName, "i");
+      if(r.match(imports)) {
+        return singleName;
+      } else {
+        var splitName:Array<String> = type.split('.');
+        var rootName:String = splitName.shift();
+        if(rootName == 'kha') {
+          splitName.unshift('khaModule');
+        }
+        var multiName = splitName.join('.');
+
+        return multiName;
+      }
+    }
 		
 		// var require = '@:jsRequire("' + c.id.split (".").join ("/") + '", "default")';
 		//var classStart = "extern class " + c.id.split (".").pop () + (c.type.superClass != null ? " extends " + c.type.superClass.t.get ().name : "") + " {";
@@ -104,7 +122,7 @@ class TSExternClassGenerator implements IClassGenerator {
 			}
 		}
 		
-		var classStart = "export class " + asVarSingleName(className) + (superClassName != null ? " extends " + asVarSingleName(superClassName) : "") + " {";
+		var classStart = "export class " + asSingleName(className) + (superClassName != null ? " extends " + asSingleName(superClassName) : "") + " {";
 		// var classStart = "extern class " + c.id.split (".").pop () + " extends Dynamic {";
 		
 		// var body = "function new ();";
@@ -161,7 +179,7 @@ class TSExternClassGenerator implements IClassGenerator {
         case "Void":
           return "void";
         default:
-          return asVarSingleName(type);
+          return asMultiName(type);
       }
     }
 
