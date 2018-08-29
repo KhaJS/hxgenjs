@@ -70,7 +70,13 @@ class TSExternClassGenerator implements IClassGenerator {
 		var imports = new TSExternRequireGenerator().generate(api, filepath.directory(), c.dependencies);
 
     // Add global module import.
-    imports = imports + "\nimport * as khaModule from 'kha';";
+    if(new EReg('kha', "i").match(packageName)) {
+      imports = imports + "\nimport * as khaModule from 'kha';";
+    }
+    else if(new EReg('ecx', "i").match(packageName)) {
+      imports = imports + "\nimport * as ecxModule from 'ecx';";
+    }
+    
 
     var asSingleName = function(type: String) {
       var splitName:Array<String> = type.split('.');
@@ -93,12 +99,17 @@ class TSExternClassGenerator implements IClassGenerator {
       } else {
         var splitName:Array<String> = type.split('.');
         var rootName:String = splitName.shift();
-        if(rootName == 'kha') {
+        if (rootName == 'kha') {
           splitName.unshift('khaModule');
+          var multiName = splitName.join('.');
+          return multiName;
+        } else if (rootName == 'ecx') {
+          splitName.unshift('ecxModule');
+          var multiName = splitName.join('.');
+          return multiName;
+        } else {
+          return "any";
         }
-        var multiName = splitName.join('.');
-
-        return multiName;
       }
     }
 		
@@ -208,7 +219,7 @@ class TSExternClassGenerator implements IClassGenerator {
 						for (arg in args) {
 							if (params != "") params += ", ";
 							var name = (arg.name != "" && arg.name != null) ? arg.name : "a" + (++i);
-							params += name + (arg.opt ? "?" : "") + ":" + "any"/*arg.t.toString ()*/;
+							params += name + (arg.opt ? "?" : "") + ":" + '${convertMacroType(arg.t)}'/*arg.t.toString ()*/;
 						}
 						// fieldCode = ((c.type.superClass != null && hasField(field.name, c.type.superClass.t)) ? "override " : "") + (isStatic? "static " : "") + (field.name == "new" ? "constructor" : field.name) + "(" + params + ")" + (field.name != "new" ? ":any" : "") + ";";
 						fieldCode = (isStatic? "static " : "") + (field.name == "new" ? "constructor" : field.name) + "(" + params + ")" + (field.name != "new" ? ':${convertMacroType(t)}' : "") + ";";
